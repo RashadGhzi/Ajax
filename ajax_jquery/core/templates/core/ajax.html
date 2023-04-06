@@ -1,0 +1,139 @@
+<script>
+    $('.btn-save').click(function (){
+        let id = $('input[name=id]').val();
+        let name = $('input[name=name]').val();
+        let roll = $('input[name=roll]').val();
+        let age = $('input[name=age]').val();
+        let csrf_token = $("input[name=csrfmiddlewaretoken]").val();
+        let my_data = {id:id, name: name, roll:roll, age:age, csrfmiddlewaretoken:csrf_token };
+        let students_data;
+        $.ajax({
+            url: "{% url 'home' %}",
+            method: "POST",
+            data: my_data,
+            success: function(response) {
+              // Handle the response from the server
+              console.log(response);
+              if (response.status == 200){
+                alert('data has been saved');
+                $('form')[0].reset();
+                poll();
+              }
+              
+              if(response.status == 404){
+                errors = JSON.parse(response.errors)
+                if(errors.name && errors.roll && errors.age) {
+                    error = document.getElementById("error-field")
+                    error.innerHTML = "Fill up your Form. All fields are required."
+                    error.classList.add('alert', 'alert-danger');
+                }
+
+                else if (errors.name){
+                    nameError = JSON.stringify(errors.name[0].message)
+                    error = document.getElementById("error-field")
+                    error.innerHTML ="Name : " +nameError
+                    error.classList.add("alert", "alert-danger");
+                    
+                } else if (errors.roll){
+                    nameError = JSON.stringify(errors.roll[0].message)
+                    error = document.getElementById("error-field")
+                    error.innerHTML ="Roll : " +nameError
+                    error.classList.add("alert", "alert-danger");
+                    
+                } else if (errors.age){
+                    nameError = JSON.stringify(errors.age[0].message)
+                    error = document.getElementById("error-field")
+                    error.innerHTML ="Age : " +nameError
+                    error.classList.add("alert", "alert-danger");
+                    
+                } 
+              }
+            },
+          });
+    })
+
+
+    // Seeing all data from database 
+    function poll(){
+        $.ajax({
+            url: "{% url 'student_list' %}",
+            method: 'GET',
+            data: {
+                // Optional data to send with the request
+            },
+            success: function(response) {
+                // Handle the response from the server
+                console.log(response);
+                let students_data = '';
+                let student_list = response.data;
+                for (let i = 0; i<student_list.length; i++){
+                    students_data += "<tr><th scope='row'>" + student_list[i].id + "</th><td>" + student_list[i].name + "</td><td>" + student_list[i].roll + "</td><td>" + student_list[i].age + "</td><td ><input type='button' class='btn-sm btn btn-danger btn-del'  value='delete' data-sid=" + student_list[i].id + "> <input type='button' class='btn-sm btn btn-warning btn-edit'  value='Edit' data-sid=" + student_list[i].id + "></td></tr>"
+                }
+                $('#form-tbody').html(students_data)    
+            },
+            error: function(xhr, status, error) {
+                // Handle errors
+            }
+      
+        });
+    }
+
+    poll();
+
+
+    // reset form
+    $('#reset-form').click(function(){
+        console.log('reset button clicked')
+        $('form')[0].reset();
+        $('input[name=id]').val('');
+    })
+
+
+
+    // delete specific object 
+    $("tbody").on("click", ".btn-del", function(){
+        console.log('delete button clicked')
+        let id = $(this).attr("data-sid");
+        let csrf_token = $("input[name=csrfmiddlewaretoken]").val();
+        console.log(id)
+        let del_id_obj = {del_id:id, csrfmiddlewaretoken:csrf_token}
+        $.ajax({
+            url:"{% url 'student_delete_view' %}",
+            method:"POST",
+            data:del_id_obj,
+            success:function(response){
+                {success: true}
+                if(response.success == true){
+                    alert('data deleted successfully');
+                }
+                if (response.success == false){
+                    alert('something went wrong');
+                }
+                poll();
+            }
+            
+        })
+    })
+
+
+    // update specific object 
+    $('tbody').on('click', '.btn-edit', function(){
+        let id = $(this).attr('data-sid');
+        let csrf_token = $("input[name=csrfmiddlewaretoken]").val();
+        
+        data = {"id":id, 'csrfmiddlewaretoken':csrf_token}
+        $.ajax({
+            url:"{% url 'student_id_view' %}",
+            method:"POST",
+            data:data,
+            success:function(response){
+                console.log(response)
+                $('input[name=id]').val(response.id);
+                $('input[name=name]').val(response.name);
+                $('input[name=roll]').val(response.roll);
+                $('input[name=age]').val(response.age);
+            }
+        })
+    })
+
+</script>
